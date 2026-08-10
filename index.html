@@ -1,293 +1,983 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ZX650A BLE 通知监听器</title>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>ZX650A BLE Control Lab</title>
 
 <style>
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  padding:18px;
-  line-height:1.5
+* {
+    box-sizing: border-box;
 }
 
-button{
-  font-size:18px;
-  padding:12px 16px;
-  margin:6px 6px 6px 0;
-  border-radius:10px;
-  border:1px solid #aaa;
-  background:#f5f5f5
+body {
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    margin: 0;
+    padding: 18px;
+
+    background: #f5f5f7;
+    color: #111;
 }
 
-pre{
-  white-space:pre-wrap;
-  word-break:break-all;
-  background:#f2f2f2;
-  padding:12px;
-  border-radius:10px
+h1 {
+    font-size: 24px;
+    margin-bottom: 6px;
 }
 
-.small{
-  font-size:14px;
-  color:#666
+h2 {
+    font-size: 18px;
+    margin-top: 24px;
+}
+
+.status {
+    padding: 12px;
+    border-radius: 12px;
+    background: white;
+    margin: 12px 0;
+}
+
+button {
+    font-size: 16px;
+    padding: 11px 14px;
+    margin: 4px;
+    border-radius: 10px;
+    border: 1px solid #aaa;
+    background: white;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+.primary {
+    background: #111;
+    color: white;
+}
+
+.danger {
+    background: #ddd;
+}
+
+.mode-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.panel {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 12px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid #aaa;
+    margin: 6px 0;
+}
+
+select {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid #aaa;
+}
+
+pre {
+    background: #111;
+    color: #eee;
+    padding: 12px;
+    border-radius: 12px;
+
+    min-height: 220px;
+
+    white-space: pre-wrap;
+    word-break: break-all;
+
+    font-size: 12px;
+}
+
+.note {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
 }
 </style>
-
 </head>
+
 
 <body>
 
-<h2>ZX650A BLE 通知监听器</h2>
+<h1>ZX650A BLE Control Lab</h1>
 
-<p>
-先关闭 Zemila 与设备的连接，再连接 ZX650A。<br>
-此页面只监听 Notify，不发送未知控制指令。
+<div class="status">
+
+    <div>
+        <b>设备：</b>
+        <span id="deviceName">未连接</span>
+    </div>
+
+    <div>
+        <b>GATT：</b>
+        <span id="gattStatus">未连接</span>
+    </div>
+
+</div>
+
+
+<div class="panel">
+
+    <button
+        class="primary"
+        onclick="connectDevice()">
+
+        扫描并连接 ZX650A
+
+    </button>
+
+
+    <button
+        onclick="disconnectDevice()">
+
+        断开连接
+
+    </button>
+
+
+    <button
+        onclick="clearLog()">
+
+        清空日志
+
+    </button>
+
+</div>
+
+
+<div class="panel">
+
+<h2>当前 BLE 特征</h2>
+
+<pre id="characteristics">
+尚未连接
+</pre>
+
+</div>
+
+
+<div class="panel">
+
+<h2>吮吸模式</h2>
+
+<p class="note">
+候选测试帧：
+55 FE 09 XX 0A 00 00
 </p>
 
-<button id="scan">扫描并连接 ZX650A</button>
-<button id="clear">清空日志</button>
+<div class="mode-grid">
 
-<pre id="out">等待操作…</pre>
+<button onclick="testSuction(1)">吮吸 1</button>
+<button onclick="testSuction(2)">吮吸 2</button>
+<button onclick="testSuction(3)">吮吸 3</button>
+<button onclick="testSuction(4)">吮吸 4</button>
+
+<button onclick="testSuction(5)">吮吸 5</button>
+<button onclick="testSuction(6)">吮吸 6</button>
+<button onclick="testSuction(7)">吮吸 7</button>
+<button onclick="testSuction(8)">吮吸 8</button>
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2>入体模式</h2>
+
+<p class="note">
+每个模式目前有两条已观察到的 Notify：
+<br>
+55 FE 03 XX 0A 00 00
+<br>
+55 FE 07 XX 0A 00 00
+</p>
+
+<div class="mode-grid">
+
+<button onclick="testInsertion(1)">入体 1</button>
+<button onclick="testInsertion(2)">入体 2</button>
+<button onclick="testInsertion(3)">入体 3</button>
+<button onclick="testInsertion(4)">入体 4</button>
+
+<button onclick="testInsertion(5)">入体 5</button>
+<button onclick="testInsertion(6)">入体 6</button>
+<button onclick="testInsertion(7)">入体 7</button>
+<button onclick="testInsertion(8)">入体 8</button>
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2>原始 HEX Write</h2>
+
+<p class="note">
+用于测试未知协议。请输入十六进制字节，例如：
+55 FE 09 01 0A 00 00
+</p>
+
+
+<select id="writeTarget">
+
+<option value="FFE1">
+FFE1 — Write Without Response
+</option>
+
+<option value="AE01">
+AE01 — Write Without Response
+</option>
+
+</select>
+
+
+<input
+    id="hexInput"
+    type="text"
+    placeholder="55 FE 09 01 0A 00 00"
+/>
+
+
+<button
+    class="primary"
+    onclick="sendRawHex()">
+
+    发送 HEX
+
+</button>
+
+</div>
+
+
+<div class="panel">
+
+<h2>实时日志</h2>
+
+<pre id="log">等待操作……</pre>
+
+</div>
 
 
 <script>
 
-const out=document.getElementById('out');
+let device = null;
 
-let device=null;
-let notifyChars=[];
+let server = null;
+
+let services = {};
+
+let characteristics = {};
 
 
-function log(s=''){
-  out.textContent+=s+'\n';
+
+const UUIDS = {
+
+    FFE0:
+        "0000ffe0-0000-1000-8000-00805f9b34fb",
+
+    FFE1:
+        "0000ffe1-0000-1000-8000-00805f9b34fb",
+
+    FFE2:
+        "0000ffe2-0000-1000-8000-00805f9b34fb",
+
+    AE00:
+        "0000ae00-0000-1000-8000-00805f9b34fb",
+
+    AE01:
+        "0000ae01-0000-1000-8000-00805f9b34fb",
+
+    AE02:
+        "0000ae02-0000-1000-8000-00805f9b34fb"
+
+};
+
+
+
+function log(message) {
+
+    const box =
+        document.getElementById("log");
+
+    const time =
+        new Date().toLocaleTimeString();
+
+    box.textContent +=
+        "[" + time + "] " +
+        message +
+        "\n";
+
+    box.scrollTop =
+        box.scrollHeight;
+
 }
 
 
-function clearLog(){
-  out.textContent='';
-}
 
+function clearLog() {
 
-function hex(value){
-
-  const a=new Uint8Array(
-    value.buffer,
-    value.byteOffset,
-    value.byteLength
-  );
-
-  return Array.from(a)
-    .map(x=>x.toString(16).padStart(2,'0'))
-    .join(' ')
-    .toUpperCase();
-
-}
-
-
-function onNotify(e){
-
-  const v=e.target.value;
-
-  log(
-    '[NOTIFY] '+
-    e.target.uuid+
-    '  ←  '+
-    hex(v)
-  );
+    document.getElementById("log")
+        .textContent = "";
 
 }
 
 
 
-async function scan(){
+function bytesToHex(data) {
 
-  clearLog();
-  notifyChars=[];
+    return Array.from(data)
+        .map(
+            byte =>
+                byte
+                .toString(16)
+                .padStart(2, "0")
+                .toUpperCase()
+        )
+        .join(" ");
 
-  try{
-
-    log('正在请求蓝牙设备…');
-
-
-    device=await navigator.bluetooth.requestDevice({
-      acceptAllDevices:true,
-      optionalServices:[
-        'ffe0',
-        'ae00'
-      ]
-    });
-
-
-    log(
-      '设备名称: '+
-      (device.name || '(无名称)')
-    );
-
-
-    log(
-      '设备ID: '+
-      device.id
-    );
-
-
-    log('正在连接 GATT…');
-
-
-    const server=await device.gatt.connect();
-
-
-    log(
-      'GATT 已连接: '+
-      server.connected
-    );
-
-
-    log('');
+}
 
 
 
-    const services=
-      await server.getPrimaryServices();
+function hexToBytes(hex) {
 
+    hex = hex
+        .replace(/0x/gi, "")
+        .replace(/[^0-9a-fA-F]/g, "");
 
-    log(
-      '========== SERVICES =========='
-    );
+    if (hex.length % 2 !== 0) {
 
-
-
-    for(const service of services){
-
-
-      log(
-        'Service: '+
-        service.uuid
-      );
-
-
-      const chars=
-        await service.getCharacteristics();
-
-
-
-      for(const ch of chars){
-
-
-        const props=
-          Object.keys(ch.properties)
-          .filter(
-            k=>ch.properties[k]
-          );
-
-
-        log(
-          '  Characteristic: '+
-          ch.uuid
+        throw new Error(
+            "HEX 字符数量必须是偶数"
         );
 
+    }
 
-        log(
-          '    Properties: '+
-          props.join(', ')
+    const bytes = [];
+
+    for (
+        let i = 0;
+        i < hex.length;
+        i += 2
+    ) {
+
+        bytes.push(
+            parseInt(
+                hex.substring(i, i + 2),
+                16
+            )
         );
 
+    }
+
+    return new Uint8Array(bytes);
+
+}
 
 
-        if(ch.properties.notify){
+
+function onNotification(event) {
+
+    const value =
+        event.target.value;
+
+    const bytes =
+        new Uint8Array(
+            value.buffer,
+            value.byteOffset,
+            value.byteLength
+        );
+
+    log(
+        "[NOTIFY] " +
+        shortUUID(event.target.uuid) +
+        " ← " +
+        bytesToHex(bytes)
+    );
+
+}
 
 
-          try{
 
+function shortUUID(uuid) {
 
-            await ch.startNotifications();
+    uuid = uuid.toLowerCase();
 
+    for (
+        const [name, full] of
+        Object.entries(UUIDS)
+    ) {
 
-            ch.addEventListener(
-              'characteristicvaluechanged',
-              onNotify
-            );
+        if (uuid === full) {
 
-
-            notifyChars.push(ch);
-
-
-            log(
-              '    >>> Notify 已开启'
-            );
-
-
-          }catch(e){
-
-
-            log(
-              '    Notify 开启失败: '+
-              e
-            );
-
-
-          }
-
+            return name;
 
         }
 
+    }
 
-      }
+    return uuid;
+
+}
 
 
-      log('');
+
+async function connectDevice() {
+
+    try {
+
+        log(
+            "正在请求蓝牙设备……"
+        );
+
+
+        device =
+            await navigator.bluetooth
+                .requestDevice({
+
+                    acceptAllDevices: true,
+
+                    optionalServices: [
+                        UUIDS.FFE0,
+                        UUIDS.AE00
+                    ]
+
+                });
+
+
+        document
+            .getElementById("deviceName")
+            .textContent =
+            device.name ||
+            "未知设备";
+
+
+        device.addEventListener(
+            "gattserverdisconnected",
+            onDisconnected
+        );
+
+
+        log(
+            "设备：" +
+            (device.name || "未知")
+        );
+
+
+        log(
+            "正在连接 GATT……"
+        );
+
+
+        server =
+            await device.gatt.connect();
+
+
+        document
+            .getElementById("gattStatus")
+            .textContent =
+            "已连接";
+
+
+        log(
+            "GATT 已连接"
+        );
+
+
+        await discoverServices();
+
+
+    } catch (error) {
+
+        log(
+            "[ERROR] " +
+            error.name +
+            " — " +
+            error.message
+        );
+
+    }
+
+}
+
+
+
+async function discoverServices() {
+
+    services = {};
+
+    characteristics = {};
+
+
+    const output =
+        document.getElementById(
+            "characteristics"
+        );
+
+    output.textContent = "";
+
+
+    const primaryServices =
+        await server.getPrimaryServices();
+
+
+    for (
+        const service of
+        primaryServices
+    ) {
+
+        const serviceShort =
+            shortUUID(service.uuid);
+
+
+        services[serviceShort] =
+            service;
+
+
+        output.textContent +=
+            "\nService: " +
+            serviceShort +
+            "\n";
+
+
+        log(
+            "发现 Service: " +
+            serviceShort
+        );
+
+
+        const chars =
+            await service
+                .getCharacteristics();
+
+
+        for (
+            const characteristic of
+            chars
+        ) {
+
+            const short =
+                shortUUID(
+                    characteristic.uuid
+                );
+
+
+            characteristics[short] =
+                characteristic;
+
+
+            const props =
+                Object.keys(
+                    characteristic.properties
+                )
+                .filter(
+                    key =>
+                        characteristic
+                        .properties[key]
+                );
+
+
+            output.textContent +=
+                "  " +
+                short +
+                " [" +
+                props.join(", ") +
+                "]\n";
+
+
+            log(
+                "发现 Characteristic: " +
+                short +
+                " [" +
+                props.join(", ") +
+                "]"
+            );
+
+
+            if (
+                characteristic.properties
+                    .notify
+            ) {
+
+                try {
+
+                    await characteristic
+                        .startNotifications();
+
+
+                    characteristic
+                        .addEventListener(
+                            "characteristicvaluechanged",
+                            onNotification
+                        );
+
+
+                    log(
+                        "Notify 已开启：" +
+                        short
+                    );
+
+
+                } catch (error) {
+
+                    log(
+                        "Notify 开启失败：" +
+                        short +
+                        " — " +
+                        error.message
+                    );
+
+                }
+
+            }
+
+        }
 
     }
 
 
-
     log(
-      '========== 监听中 =========='
+        "========== BLE 初始化完成 =========="
     );
-
-
-    log(
-      '保持连接 10~20 秒，观察是否出现 [NOTIFY]'
-    );
-
-
-    log(
-      '如果出现数据，把完整日志截图发给我'
-    );
-
-
-
-  }catch(e){
-
-
-    log(
-      '错误: '+
-      e.name+
-      ' — '+
-      e.message
-    );
-
-
-  }
-
 
 }
 
 
 
-document
-.getElementById('scan')
-.onclick=scan;
+async function writeHex(
+    characteristicName,
+    hex
+) {
+
+    const characteristic =
+        characteristics[
+            characteristicName
+        ];
 
 
-document
-.getElementById('clear')
-.onclick=clearLog;
+    if (!characteristic) {
+
+        log(
+            "[ERROR] 找不到 " +
+            characteristicName
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const bytes =
+            hexToBytes(hex);
+
+
+        log(
+            "[WRITE] " +
+            characteristicName +
+            " → " +
+            bytesToHex(bytes)
+        );
+
+
+        if (
+            characteristic
+                .properties
+                .writeWithoutResponse
+        ) {
+
+            await characteristic
+                .writeValueWithoutResponse(
+                    bytes
+                );
+
+        } else {
+
+            await characteristic
+                .writeValue(bytes);
+
+        }
+
+
+        log(
+            "[WRITE OK] " +
+            characteristicName
+        );
+
+
+    } catch (error) {
+
+        log(
+            "[WRITE ERROR] " +
+            characteristicName +
+            " — " +
+            error.name +
+            " — " +
+            error.message
+        );
+
+    }
+
+}
+
+
+
+async function testSuction(mode) {
+
+    const frame =
+        [
+            0x55,
+            0xFE,
+            0x09,
+            mode,
+            0x0A,
+            0x00,
+            0x00
+        ];
+
+
+    const hex =
+        bytesToHex(
+            new Uint8Array(frame)
+        );
+
+
+    log(
+        "========== 吮吸 " +
+        mode +
+        " 候选测试 =========="
+    );
+
+
+    log(
+        "候选帧：" +
+        hex
+    );
+
+
+    await writeHex(
+        "FFE1",
+        hex
+    );
+
+}
+
+
+
+async function testInsertion(mode) {
+
+    const frame1 =
+        [
+            0x55,
+            0xFE,
+            0x03,
+            mode,
+            0x0A,
+            0x00,
+            0x00
+        ];
+
+
+    const frame2 =
+        [
+            0x55,
+            0xFE,
+            0x07,
+            mode,
+            0x0A,
+            0x00,
+            0x00
+        ];
+
+
+    const hex1 =
+        bytesToHex(
+            new Uint8Array(frame1)
+        );
+
+
+    const hex2 =
+        bytesToHex(
+            new Uint8Array(frame2)
+        );
+
+
+    log(
+        "========== 入体 " +
+        mode +
+        " 候选测试 =========="
+    );
+
+
+    log(
+        "候选帧 1：" +
+        hex1
+    );
+
+
+    log(
+        "候选帧 2：" +
+        hex2
+    );
+
+
+    /*
+     * 目前还不知道：
+     *
+     * 03 / 07
+     *
+     * 是否都需要由手机写入。
+     *
+     * 因此这里先把两条候选帧
+     * 连续写入 FFE1。
+     *
+     * 如果实验结果不对，
+     * 下一版再分别测试。
+     */
+
+
+    await writeHex(
+        "FFE1",
+        hex1
+    );
+
+
+    await new Promise(
+        resolve =>
+            setTimeout(resolve, 100)
+    );
+
+
+    await writeHex(
+        "FFE1",
+        hex2
+    );
+
+}
+
+
+
+async function sendRawHex() {
+
+    const target =
+        document
+        .getElementById(
+            "writeTarget"
+        )
+        .value;
+
+
+    const input =
+        document
+        .getElementById(
+            "hexInput"
+        )
+        .value
+        .trim();
+
+
+    if (!input) {
+
+        log(
+            "[ERROR] HEX 不能为空"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const bytes =
+            hexToBytes(input);
+
+
+        log(
+            "========== 原始 Write =========="
+        );
+
+
+        await writeHex(
+            target,
+            bytesToHex(bytes)
+        );
+
+
+    } catch (error) {
+
+        log(
+            "[ERROR] " +
+            error.message
+        );
+
+    }
+
+}
+
+
+
+function disconnectDevice() {
+
+    if (
+        device &&
+        device.gatt &&
+        device.gatt.connected
+    ) {
+
+        device.gatt.disconnect();
+
+        log(
+            "已断开 GATT"
+        );
+
+    }
+
+}
+
+
+
+function onDisconnected() {
+
+    document
+        .getElementById("gattStatus")
+        .textContent =
+        "已断开";
+
+
+    log(
+        "设备已断开"
+    );
+
+}
 
 
 </script>
-
 
 </body>
 </html>
