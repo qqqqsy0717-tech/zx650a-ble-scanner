@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZX650A BLE Scanner</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:18px;line-height:1.45}
+button{font-size:18px;padding:12px 16px;margin:6px 0;border-radius:10px;border:1px solid #aaa;background:#f5f5f5}
+pre{white-space:pre-wrap;word-break:break-all;background:#f2f2f2;padding:12px;border-radius:10px}
+.ok{color:green}.warn{color:#b36b00}
+</style>
+</head>
+<body>
+<h2>ZX650A BLE 扫描器</h2>
+<p>请先关闭 Zemila 与设备的连接，再点击下面按钮。</p>
+<button id="scan">扫描并连接 ZX650A</button>
+<button id="clear">清空</button>
+<pre id="out">等待操作…</pre>
+
+<script>
+const out = document.getElementById('out');
+function log(s=''){ out.textContent += s + "\n"; }
+function clearLog(){ out.textContent=''; }
+
+function hexUuid(x){
+  try { return x.uuid || String(x); } catch(e){ return String(x); }
+}
+
+async function scan(){
+  clearLog();
+  log('正在请求蓝牙设备…');
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ['generic_access','generic_attribute']
+    });
+
+    log('设备名称: ' + (device.name || '(无名称)'));
+    log('设备ID: ' + device.id);
+    log('正在连接 GATT…');
+
+    const server = await device.gatt.connect();
+    log('GATT 已连接: ' + server.connected);
+    log('');
+
+    let services;
+    try {
+      services = await server.getPrimaryServices();
+    } catch(e) {
+      log('获取 Primary Services 失败: ' + e);
+      log('如果设备需要指定 optionalServices，下一步再处理。');
+      return;
+    }
+
+    log('========== PRIMARY SERVICES ==========');
+    for (const service of services) {
+      log('Service: ' + service.uuid);
+
+      let chars;
+      try {
+        chars = await service.getCharacteristics();
+      } catch(e) {
+        log('  获取 Characteristics 失败: ' + e);
+        continue;
+      }
+
+      for (const ch of chars) {
+        log('  Characteristic: ' + ch.uuid);
+        log('    Properties: ' + Object.keys(ch.properties)
+          .filter(k => ch.properties[k]).join(', '));
+
+        if (ch.properties.read) {
+          try {
+            const value = await ch.readValue();
+            log('    Read: ' + toHex(value));
+          } catch(e) {
+            log('    Read失败: ' + e);
+          }
+        }
+      }
+      log('');
+    }
+
+    log('========== 扫描完成 ==========');
+    log('把这一整页 Live Output 截图发给我。');
+  } catch(e) {
+    log('错误: ' + e.name + ' — ' + e.message);
+  }
+}
+
+function toHex(value){
+  const arr = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  return Array.from(arr).map(x=>x.toString(16).padStart(2,'0')).join(' ').toUpperCase();
+}
+
+document.getElementById('scan').onclick = scan;
+document.getElementById('clear').onclick = clearLog;
+</script>
+</body>
+</html>
