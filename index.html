@@ -4,86 +4,290 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ZX650A BLE 通知监听器</title>
+
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:18px;line-height:1.5}
-button{font-size:18px;padding:12px 16px;margin:6px 6px 6px 0;border-radius:10px;border:1px solid #aaa;background:#f5f5f5}
-pre{white-space:pre-wrap;word-break:break-all;background:#f2f2f2;padding:12px;border-radius:10px}
-.small{font-size:14px;color:#666}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  padding:18px;
+  line-height:1.5
+}
+
+button{
+  font-size:18px;
+  padding:12px 16px;
+  margin:6px 6px 6px 0;
+  border-radius:10px;
+  border:1px solid #aaa;
+  background:#f5f5f5
+}
+
+pre{
+  white-space:pre-wrap;
+  word-break:break-all;
+  background:#f2f2f2;
+  padding:12px;
+  border-radius:10px
+}
+
+.small{
+  font-size:14px;
+  color:#666
+}
 </style>
+
 </head>
+
 <body>
+
 <h2>ZX650A BLE 通知监听器</h2>
-<p>先关闭 ZEMALIA 与设备的连接，再连接 ZX650A。此页面只监听 Notify，不发送未知控制指令。</p>
+
+<p>
+先关闭 Zemila 与设备的连接，再连接 ZX650A。<br>
+此页面只监听 Notify，不发送未知控制指令。
+</p>
+
 <button id="scan">扫描并连接 ZX650A</button>
 <button id="clear">清空日志</button>
+
 <pre id="out">等待操作…</pre>
 
+
 <script>
+
 const out=document.getElementById('out');
+
 let device=null;
 let notifyChars=[];
 
-function log(s=''){out.textContent+=s+'\\n';}
-function clearLog(){out.textContent='';}
+
+function log(s=''){
+  out.textContent+=s+'\n';
+}
+
+
+function clearLog(){
+  out.textContent='';
+}
+
+
 function hex(value){
-  const a=new Uint8Array(value.buffer,value.byteOffset,value.byteLength);
-  return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(' ').toUpperCase();
+
+  const a=new Uint8Array(
+    value.buffer,
+    value.byteOffset,
+    value.byteLength
+  );
+
+  return Array.from(a)
+    .map(x=>x.toString(16).padStart(2,'0'))
+    .join(' ')
+    .toUpperCase();
+
 }
+
+
 function onNotify(e){
+
   const v=e.target.value;
-  log('[NOTIFY] '+e.target.uuid+'  ←  '+hex(v));
+
+  log(
+    '[NOTIFY] '+
+    e.target.uuid+
+    '  ←  '+
+    hex(v)
+  );
+
 }
+
+
 
 async function scan(){
+
   clearLog();
   notifyChars=[];
+
   try{
+
     log('正在请求蓝牙设备…');
-    device=await navigator.bluetooth.requestDevice({acceptAllDevices:true});
-    log('设备名称: '+(device.name||'(无名称)'));
-    log('设备ID: '+device.id);
+
+
+    device=await navigator.bluetooth.requestDevice({
+      acceptAllDevices:true,
+      optionalServices:[
+        'ffe0',
+        'ae00'
+      ]
+    });
+
+
+    log(
+      '设备名称: '+
+      (device.name || '(无名称)')
+    );
+
+
+    log(
+      '设备ID: '+
+      device.id
+    );
+
+
     log('正在连接 GATT…');
+
+
     const server=await device.gatt.connect();
-    log('GATT 已连接: '+server.connected);
+
+
+    log(
+      'GATT 已连接: '+
+      server.connected
+    );
+
+
     log('');
 
-    const services=await server.getPrimaryServices();
-    log('========== SERVICES ==========');
+
+
+    const services=
+      await server.getPrimaryServices();
+
+
+    log(
+      '========== SERVICES =========='
+    );
+
+
 
     for(const service of services){
-      log('Service: '+service.uuid);
-      const chars=await service.getCharacteristics();
+
+
+      log(
+        'Service: '+
+        service.uuid
+      );
+
+
+      const chars=
+        await service.getCharacteristics();
+
+
 
       for(const ch of chars){
-        const props=Object.keys(ch.properties).filter(k=>ch.properties[k]);
-        log('  Characteristic: '+ch.uuid);
-        log('    Properties: '+props.join(', '));
+
+
+        const props=
+          Object.keys(ch.properties)
+          .filter(
+            k=>ch.properties[k]
+          );
+
+
+        log(
+          '  Characteristic: '+
+          ch.uuid
+        );
+
+
+        log(
+          '    Properties: '+
+          props.join(', ')
+        );
+
+
 
         if(ch.properties.notify){
+
+
           try{
+
+
             await ch.startNotifications();
-            ch.addEventListener('characteristicvaluechanged',onNotify);
+
+
+            ch.addEventListener(
+              'characteristicvaluechanged',
+              onNotify
+            );
+
+
             notifyChars.push(ch);
-            log('    >>> Notify 已开启');
+
+
+            log(
+              '    >>> Notify 已开启'
+            );
+
+
           }catch(e){
-            log('    Notify 开启失败: '+e);
+
+
+            log(
+              '    Notify 开启失败: '+
+              e
+            );
+
+
           }
+
+
         }
+
+
       }
+
+
       log('');
+
     }
 
-    log('========== 监听中 ==========');
-    log('保持这个页面连接约 10~20 秒，观察是否出现 [NOTIFY]。');
-    log('如果有 [NOTIFY]，把完整日志截图发给我。');
-    log('');
+
+
+    log(
+      '========== 监听中 =========='
+    );
+
+
+    log(
+      '保持连接 10~20 秒，观察是否出现 [NOTIFY]'
+    );
+
+
+    log(
+      '如果出现数据，把完整日志截图发给我'
+    );
+
+
+
   }catch(e){
-    log('错误: '+e.name+' — '+e.message);
+
+
+    log(
+      '错误: '+
+      e.name+
+      ' — '+
+      e.message
+    );
+
+
   }
+
+
 }
 
-document.getElementById('scan').onclick=scan;
-document.getElementById('clear').onclick=clearLog;
+
+
+document
+.getElementById('scan')
+.onclick=scan;
+
+
+document
+.getElementById('clear')
+.onclick=clearLog;
+
+
 </script>
+
+
 </body>
 </html>
